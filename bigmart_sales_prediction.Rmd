@@ -162,3 +162,55 @@ train.data <- train.data %>%
   mutate(Item_Fat_Content = mapping_values[Item_Fat_Content])
   
 ```
+
+##Feature Engineering:  
+
+###Train:
+```{r , echo =TRUE}
+train.data_v2 = train.data %>% 
+  mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
+  mutate(Item_Cat = substr(Item_Identifier,1,2)) %>% 
+  rowwise() %>% 
+  mutate(Item_Fat_Content_v2 = ifelse(Item_Cat=="NC","not_edible",Item_Fat_Content)) %>% 
+  select(-c(Item_Fat_Content,Outlet_Establishment_Year)) 
+
+train.data_v3 = train.data_v2 %>% 
+  filter(Item_Visibility>0) %>% 
+  group_by(Item_Identifier) %>% 
+  summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
+  merge(train.data_v2,.,by.x="Item_Identifier",by.y="Item_Identifier") %>% 
+  rowwise() %>% 
+  mutate(Item_Visibility_v2 = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
+  
+train.data_v3 = train.data_v3 %>% 
+  mutate(Item_Visibility_v2_Ratio = Item_Visibility_v2/Item_Visibility_Avg ) %>% 
+  select(-c(Item_Visibility,Item_Visibility_Avg)) 
+  
+```
+
+###Test:
+```{r , echo =TRUE}
+test.data_v2 = test.data %>% 
+  mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
+  mutate(Item_Cat = substr(Item_Identifier,1,2)) %>% 
+  rowwise() %>% 
+  mutate(Item_Fat_Content_v2 = ifelse(Item_Cat=="NC","not_edible",Item_Fat_Content)) %>% 
+  select(-c(Item_Fat_Content,Outlet_Establishment_Year)) 
+
+test.data_v3 = test.data_v2 %>% 
+  filter(Item_Visibility>0) %>% 
+  group_by(Item_Identifier) %>% 
+  summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
+  merge(test.data_v2,.,by.x="Item_Identifier",by.y="Item_Identifier") %>% 
+  rowwise() %>% 
+  mutate(Item_Visibility_v2 = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
+  
+test.data_v3 = test.data_v3 %>% 
+  mutate(Item_Visibility_v2_Ratio = Item_Visibility_v2/Item_Visibility_Avg ) %>% 
+  select(-c(Item_Visibility,Item_Visibility_Avg)) 
+  
+```
+
+```{r , echo =TRUE}
+setdiff(names(train.data_v3),names(test.data_v3))
+```
