@@ -56,9 +56,9 @@ item_weights <- train.data %>%
   summarise(
     l_u_weights = length(unique(Item_Weight)),
     u_weights = paste(sort(unique(Item_Weight), na.last = TRUE), collapse = " | ")) %>%
-  arrange(u_weights)
+  arrange(desc(u_weights))
 
-View(head(item_weights, 10))
+head(item_weights, 10)
 ```
 
 We see that in some places weights are NA whereas it is not NA in other rows for the same item. We can just use weights from other observations where weight is not NA (For the same item). For this purpose the whole train and test datasets have been used to impute the missing information. Hence, we define the following function for treating these missing values.
