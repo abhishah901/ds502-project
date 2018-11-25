@@ -58,18 +58,31 @@ item_weights <- train.data %>%
     u_weights = paste(sort(unique(Item_Weight), na.last = TRUE), collapse = " | "))
 ```
 
-We see that in some places weights are NA whereas it is not NA in other rows for the same item. We can just use weights from other observations where weight is not NA (For the same item). Also, there are four items for which weights are completely missing. We are going to drop these items.
+We see that in some places weights are NA whereas it is not NA in other rows for the same item. We can just use weights from other observations where weight is not NA (For the same item). For this purpose the whole train and test datasets have been used to impute the missing information.
+
+```{r}
+fill_missing_values <- function(file) {
+  train_file <- read.csv("./bigmart_train.csv")
+  test_file <- read.csv("./bigmart_test.csv")
+  all <- rbind(subset(train_file, select = -Item_Outlet_Sales), test_file)
+  train_file_i <- which(is.na(file$Item_Weight))
+  
+  for (i in train_file_i) {
+    id <- file[i,]$Item_Identifier
+    weight <- all[ all$Item_Identifier == as.character(id) & !is.na(all$Item_Weight),]$Item_Weight[1]
+    file[i,]$Item_Weight <- weight
+  }
+  
+  return (file)
+  
+}
+```
 
 ```{r , echo =TRUE}
-train.data.mutate <- train.data %>%
-  group_by(Item_Identifier) %>%
-  mutate(Item_Weight_Imputed = max(Item_Weight, na.rm = TRUE)) %>%
-  ungroup() %>%
-  select(-Item_Weight) %>%
-  rename(Item_Weight = Item_Weight_Imputed) %>%
-  filter(Item_Weight != -Inf)
-
+train.data.mutate <- fill_missing_values(train.data)
+test.data.mutate <- fill_missing_values(test.data)
 check.na.values(train.data.mutate)
+check.na.values(test.data.mutate)
 ```
 
 ```{r , echo =TRUE}
