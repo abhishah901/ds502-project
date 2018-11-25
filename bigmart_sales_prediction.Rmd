@@ -93,4 +93,19 @@ train.data.mutate <- train.data.mutate %>%
   mutate(Item_Fat_Content = mapping_values[Item_Fat_Content])
   
 ```
+```{r}
+#Sales of each store
+library(data.table)
+hold = data.table(train)
+holder.ID = hold[,sum(Item_Outlet_Sales), by = Outlet_Identifier]
 
+barplot(setNames(holder.ID$V1,holder.ID$Outlet_Identifier),horiz = TRUE,width = 2)
+#Plot Histogram for each store
+
+```
+
+```{r}
+#Size of 
+holder.Size = hold[,sum(Item_Outlet_Sales), by = train$Outlet_Size]
+barplot(setNames(holder.Size$V1,holder.Size$Outlet_Identifier),width = 2)
+```
