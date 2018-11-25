@@ -17,7 +17,6 @@ knitr::opts_chunk$set(echo = TRUE,
 ```
 
 ```{r , echo =TRUE}
-setwd("~/r_projects/ds502/project")
 train.data <- read.csv('./bigmart_train.csv', stringsAsFactors = FALSE, na.strings = c(""))
 test.data <- read.csv('./bigmart_test.csv', stringsAsFactors = FALSE, na.strings = c(""))
 ```
