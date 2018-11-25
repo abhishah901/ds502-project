@@ -84,10 +84,10 @@ fill_missing_values <- function(file) {
 Then, we call it and check if the problem is resolved.
 
 ```{r , echo =TRUE}
-train.data.mutate <- fill_missing_values(train.data)
-test.data.mutate <- fill_missing_values(test.data)
-check.na.values(train.data.mutate)
-check.na.values(test.data.mutate)
+train.data <- fill_missing_values(train.data)
+test.data <- fill_missing_values(test.data)
+check.na.values(train.data)
+check.na.values(test.data)
 ```
 
 Since, there is no more missing values for the feature `Item_Weight`, we treat in the following section the missing values for the feature `Outlet_Size`.
@@ -95,7 +95,7 @@ Since, there is no more missing values for the feature `Item_Weight`, we treat i
 Given that `Outlet_Size` is an outlet specific attribute, we first begin by printing all the outlets available in our training set (10 outlets in total). Hence, we figure out that the 2410 missing values in training set belong to only 3 outlets and the size of these outlets is also missing in the testing set.
 
 ```{r}
-unique_outs <- unique(train.data.mutate %>% select(starts_with("Outlet_")))
+unique_outs <- unique(train.data %>% select(starts_with("Outlet_")))
 unique_outs[,c(1,3)]
 ```
 
@@ -119,7 +119,8 @@ train_num_imp <- knnImputation(train_num[,-c(1:5)], k = 5, scale=T)
 for (i in na_indices) {
   out_sizes <- train_num_imp[i,c('Outlet_Size_Medium','Outlet_Size_High','Outlet_Size_Small')]
   max_out_size <- gsub('Outlet_Size_','',colnames(out_sizes)[apply(out_sizes,1,which.max)])
-  train.data.mutate[train.data.mutate$Outlet_Identifier == train_num[i,]$Outlet_Identifier,]$Outlet_Size <- max_out_size
+  train.data[train.data$Outlet_Identifier == train_num[i,]$Outlet_Identifier,]$Outlet_Size <- max_out_size
+  unique_outs[unique_outs$Outlet_Identifier == train_num[i,]$Outlet_Identifier,]$Outlet_Size <- max_out_size
 }
 ```
 
@@ -134,14 +135,30 @@ train_num_imp[na_indices,c('Outlet_Size_Medium','Outlet_Size_High','Outlet_Size_
 Finally, we check to see that there is still any missing values:
 
 ```{r , echo =TRUE}
-check.na.values(train.data.mutate)
+check.na.values(train.data)
+```
+
+We fill the missing values in the testing set with the above-predicted values for each outlet as shown below:
+
+```{r}
+test_miss_size_i <- which(is.na(test.data$Outlet_Size))
+for (i in test_miss_size_i) {
+  out_size <- unique_outs[unique_outs$Outlet_Identifier == test.data[i,]$Outlet_Identifier,]$Outlet_Size
+  test.data[i,]$Outlet_Size <- out_size
+}
+```
+
+After this, we check if there is any missing values in the testing set:
+
+```{r , echo =TRUE}
+check.na.values(test.data)
 ```
 
 ```{r , echo =TRUE}
 mapping_values <- c("low_fat", "low_fat", "low_fat", "regular", "regular")
 names(mapping_values) <- c("LF", "low fat", "Low Fat", "reg", "Regular")
 
-train.data.mutate <- train.data.mutate %>%
+train.data <- train.data %>%
   mutate(Item_Fat_Content = mapping_values[Item_Fat_Content])
   
 ```
