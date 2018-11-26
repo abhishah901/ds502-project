@@ -213,3 +213,81 @@ test.data_v3 = test.data_v3 %>%
 ```{r , echo =TRUE}
 setdiff(names(train.data_v3),names(test.data_v3))
 ```
+
+```{r}
+library(ggplot2)
+ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  xlab("Outlet identifier") + 
+  ylab("Sales") + 
+  ggtitle("Sales vs Outlet identifier")
+
+
+```
+
+``` {r}
+library(data.table) #required library for this method
+holder.Year = data.table(train.data_v3)[,sum(Item_Outlet_Sales), by = Outlet_Establishment_Year]
+barplot(setNames(holder.Year$V1,holder.Year$Outlet_Identifier),width = 2, names.arg = unique(train.data_v3$Outlet_Establishment_Year))
+
+```
+
+```{r}
+
+ggplot(train.data_v3, aes(x=Item_MRP)) + 
+  geom_density(color = "blue", adjust=1/5) +
+ggtitle("Density of Item MRP")
+
+```
+```{r}
+
+ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  xlab("Outlet type") + 
+  ylab("Sales") + 
+ggtitle("Sales vs Outlet type")
+
+
+```
+```{r}
+ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Item_Type, y = Item_Outlet_Sales, fill = Outlet_Type)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  xlab("Item type") + 
+  ylab("Sales") + 
+ggtitle("Sales vs Item type")
+```
+
+```{r}
+ggplot(train.data_v3, aes(Item_Type, Item_Visibility, fill = Outlet_Size)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  xlab("Item Type") + 
+  ylab("Item Visibility") + 
+ggtitle("Item visibility vs Item Type")
+```
+
+```{r}
+ggplot(train.data_v3, aes(Outlet_Identifier, Item_Visibility)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  xlab("Outlet_Identifier") + 
+  ylab("Item Visibility") + 
+ggtitle("Item visibility vs Outlet identifier")
+```
+
+```{r}
+ggplot() + 
+geom_density(aes(x=Item_Visibility), colour="red", data=train.data_v3)
+```
+```{r}
+ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Item_Visibility, Item_Outlet_Sales)) +
+  geom_point(size = 2.5, aes(colour = factor(Outlet_Type))) +
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  xlab("Item Visibility") + 
+  ylab("Item Outlet Sales") +
+  ggtitle("Item Sales vs Item Visibility")
+
+```
