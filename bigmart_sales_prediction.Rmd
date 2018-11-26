@@ -176,9 +176,9 @@ train.data_v2 = train.data %>%
 
 train.data_v3 = train.data_v2 %>% 
   filter(Item_Visibility>0) %>% 
-  group_by(Item_Identifier) %>% 
+  group_by(Outlet_Identifier, Item_Type) %>% 
   summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
-  merge(train.data_v2, ., by="Item_Identifier") %>% 
+  merge(train.data_v2, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
   ungroup() %>% 
   mutate(Item_Visibility = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
   
@@ -198,9 +198,9 @@ test.data_v2 = test.data %>%
 
 test.data_v3 = test.data_v2 %>% 
   filter(Item_Visibility>0) %>% 
-  group_by(Item_Identifier) %>% 
+  group_by(Outlet_Identifier, Item_Type) %>% 
   summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
-  merge(test.data_v2, ., by="Item_Identifier") %>% 
+  merge(train.data_v2, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
   ungroup() %>% 
   mutate(Item_Visibility = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
   
@@ -270,12 +270,12 @@ ggtitle("Item visibility vs Item Type")
 ```
 
 ```{r}
-ggplot(train.data_v3, aes(Outlet_Identifier, Item_Visibility)) +
+ggplot(train.data_v3, aes(Outlet_Identifier, Item_Visibility_Ratio)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Outlet_Identifier") + 
-  ylab("Item Visibility") + 
-ggtitle("Item visibility vs Outlet identifier")
+  ylab("Item Visibility Ratio") + 
+ggtitle("Item visibility Ratio vs Outlet identifier")
 ```
 
 ```{r}
