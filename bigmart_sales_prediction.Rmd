@@ -214,6 +214,15 @@ test.data = test.data %>%
 setdiff(names(train.data),names(test.data))
 ```
 
+Finally, we split sample from our training set 1000 observations that we are going to keep aside.
+
+```{r}
+set.seed(502)
+split <- sample(1:nrow(train),1000)
+aside.test.data <- train.data[split,]
+train.data <- train.data[-split,]
+```
+
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
 library(ggplot2)
