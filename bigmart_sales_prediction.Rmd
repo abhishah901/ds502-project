@@ -218,7 +218,7 @@ Finally, we split sample from our training set 1000 observations that we are goi
 
 ```{r}
 set.seed(502)
-split <- sample(1:nrow(train),1000)
+split <- sample(1:nrow(train.data),1000)
 aside.test.data <- train.data[split,]
 train.data <- train.data[-split,]
 ```
