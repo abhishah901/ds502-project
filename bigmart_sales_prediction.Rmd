@@ -214,6 +214,66 @@ test.data = test.data %>%
 setdiff(names(train.data),names(test.data))
 ```
 
+```{r, echo=TRUE}
+
+library(xgboost)
+train.data.matrix <- train.data %>%
+  select(-c("Outlet_Identifier", "Item_Identifier"))
+
+X.train <- sparse.model.matrix(Item_Outlet_Sales ~ ., data = check.train)[, -1]
+
+y.train <- train.data$Item_Outlet_Sales
+
+best_param <- list()
+best_rmse <- Inf
+best_rounds <- NULL
+
+for (iter in 1:50) {
+  param <- list(objective = "reg:linear",
+                eval_metric = "rmse",
+                max_depth = sample(1:10, 1),
+                eta = runif(1, .01, .3)
+  )
+  cv.nfold <-  5 # 5-fold cross-validation
+  cv.nrounds <- sample(seq(100,1000, 100), 1)
+  set.seed(502)
+  xgb.cv.fit <- xgb.cv(data = X.train, label = y.train,
+                 params = param, nfold = cv.nfold, nthread = 4,
+                 nrounds = cv.nrounds,
+                 verbose = F, early_stopping_rounds = 2, maximize = FALSE)
+
+  min_rmse_index  <-  xgb.cv.fit$best_iteration
+  min_rmse <-  xgb.cv.fit$evaluation_log[min_rmse_index]$test_rmse_mean
+
+  if (min_rmse < best_rmse) {
+    best_rmse <- min_rmse
+    best_param <- param
+    best_rounds <- cv.nrounds
+  }
+}
+  
+```
+
+```{r, echo=TRUE}
+best.xgb.cv.fit <- xgb.cv(data = X.train, label = y.train,
+                 params = best_param, nfold = cv.nfold, nthread = 4,
+                 nrounds = best_rounds,
+                 verbose = F, maximize = FALSE)
+
+# We plot iteration vs train rmse to detect knee in the plot, so that we don't overfit the model
+plot(best.xgb.cv.fit$evaluation_log[1:50, c(1,2)])
+
+knee_rounds = 15
+xgb.cv.fit <- xgb.cv(data = X.train, label = y.train,
+                 params = best_param, nfold = cv.nfold, nthread = 4,
+                 nrounds = knee_rounds,
+                 verbose = F, maximize = FALSE)
+
+# RMSE of the model
+tail(xgb.cv.fit$evaluation_log, 1)
+```
+
+
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
 library(ggplot2)
