@@ -167,22 +167,22 @@ train.data <- train.data %>%
 
 ###Train:
 ```{r , echo =TRUE}
-train.data_v2 = train.data %>% 
+train.data = train.data %>% 
   mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
   mutate(Item_Cat = substr(Item_Identifier,1,2)) %>% 
   # rowwise() %>% 
   mutate(Item_Fat_Content = ifelse(Item_Cat=="NC","not_edible",Item_Fat_Content)) %>% 
   select(-c(Outlet_Establishment_Year)) 
 
-train.data_v3 = train.data_v2 %>% 
+train.data = train.data %>% 
   filter(Item_Visibility>0) %>% 
   group_by(Outlet_Identifier, Item_Type) %>% 
   summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
-  merge(train.data_v2, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
+  merge(train.data, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
   ungroup() %>% 
   mutate(Item_Visibility = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
   
-train.data_v3 = train.data_v3 %>% 
+train.data = train.data %>% 
   mutate(Item_Visibility_Ratio = Item_Visibility/Item_Visibility_Avg ) %>% 
   select(-c(Item_Visibility_Avg)) 
   
@@ -190,34 +190,34 @@ train.data_v3 = train.data_v3 %>%
 
 ###Test:
 ```{r , echo =TRUE}
-test.data_v2 = test.data %>% 
+test.data = test.data %>% 
   mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
   mutate(Item_Cat = substr(Item_Identifier,1,2)) %>% 
   mutate(Item_Fat_Content = ifelse(Item_Cat=="NC","not_edible",Item_Fat_Content)) %>% 
   select(-c(Outlet_Establishment_Year))
 
-test.data_v3 = test.data_v2 %>% 
+test.data = test.data %>% 
   filter(Item_Visibility>0) %>% 
   group_by(Outlet_Identifier, Item_Type) %>% 
   summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
-  merge(train.data_v2, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
+  merge(train.data, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
   ungroup() %>% 
   mutate(Item_Visibility = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
   
-test.data_v3 = test.data_v3 %>% 
+test.data = test.data %>% 
   mutate(Item_Visibility_Ratio = Item_Visibility/Item_Visibility_Avg ) %>% 
   select(-c(Item_Visibility_Avg)) 
   
 ```
 
 ```{r , echo =TRUE}
-setdiff(names(train.data_v3),names(test.data_v3))
+setdiff(names(train.data),names(test.data))
 ```
 
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
 library(ggplot2)
-ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
+ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
   geom_boxplot() +
   theme_gray() +
   xlab("Outlet identifier") + 
@@ -228,7 +228,7 @@ ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Outlet_Identifier, Item_Outlet
 ```
 The intuition behind the next plot was to know whether the age of the Outlet does affect the Sales or not. As it shows, it doesn't.
 ``` {r}
-ggplot(train.data_v3[1:nrow(train.data_v3),], aes(as.factor(Years_Operating), Item_Outlet_Sales)) +
+ggplot(train.data[1:nrow(train.data),], aes(as.factor(Years_Operating), Item_Outlet_Sales)) +
   geom_boxplot() +
   theme_gray() 
   xlab("Years of Operation") + 
@@ -238,7 +238,7 @@ ggplot(train.data_v3[1:nrow(train.data_v3),], aes(as.factor(Years_Operating), It
 Next we try to understand how much is the spread of the price and ranges. 
 ```{r}
 
-ggplot(train.data_v3, aes(x=Item_MRP)) + 
+ggplot(train.data, aes(x=Item_MRP)) + 
   geom_density(adjust=1/6) +
   xlab("Max. Retail Price")
   theme_gray()
@@ -247,7 +247,7 @@ ggtitle("Spread of Item MRP")
 ```
 ```{r}
 
-ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
+ggplot(train.data[1:nrow(train.data),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
   geom_boxplot() +
   theme_gray() +
   xlab("Outlet type") + 
@@ -257,7 +257,7 @@ ggtitle("Sales vs Outlet type")
 
 ```
 ```{r}
-ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Item_Type, y = Item_Outlet_Sales, fill = Outlet_Type)) +
+ggplot(train.data[1:nrow(train.data),], aes(x = Item_Type, y = Item_Outlet_Sales, fill = Outlet_Type)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Item type") + 
@@ -266,7 +266,7 @@ ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Item_Type, y = Item_Outlet
 ```
 
 ```{r}
-ggplot(train.data_v3, aes(Item_Type, Item_Visibility_v2, fill = Outlet_Size)) +
+ggplot(train.data, aes(Item_Type, Item_Visibility_v2, fill = Outlet_Size)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Item Type") + 
@@ -275,7 +275,7 @@ ggtitle("Item visibility vs Item Type")
 ```
 
 ```{r}
-ggplot(train.data_v3, aes(Outlet_Identifier, Item_Visibility_v2)) +
+ggplot(train.data, aes(Outlet_Identifier, Item_Visibility_v2)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Outlet_Identifier") + 
@@ -285,11 +285,11 @@ ggtitle("Item visibility vs Outlet identifier")
 
 ```{r}
 ggplot() + 
-geom_density(aes(x=Item_Visibility_v2), colour="red", data=train.data_v3)
+geom_density(aes(x=Item_Visibility_v2), colour="red", data=train.data)
 
 ```
 ```{r}
-ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Item_Visibility_v2, Item_Outlet_Sales)) +
+ggplot(train.data[1:nrow(train.data),], aes(Item_Visibility_v2, Item_Outlet_Sales)) +
   geom_point(size = 2.5, aes(colour = factor(Outlet_Type))) +
   theme_light()
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
