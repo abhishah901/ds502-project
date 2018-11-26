@@ -218,10 +218,37 @@ Finally, we split sample from our training set 1000 observations that we are goi
 
 ```{r}
 set.seed(502)
-split <- sample(1:nrow(train),1000)
+split <- sample(1:nrow(train.data),1000)
 aside.test.data <- train.data[split,]
 train.data <- train.data[-split,]
 ```
+
+
+```{r}
+train.data.cat <- Filter(Negate(is.numeric),train.data)
+train.data.num <- Filter(is.numeric,train.data)
+train.data.dum <- dummy_cols(subset(train.data.cat, select = -Item_Identifier))[,-c(1:7)]
+train.data.pca <- data.frame(train.data.num,train.data.dum)
+Xtrain <- model.matrix(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier))
+pca.out <- prcomp(Xtrain[,-1], scale=TRUE, center=TRUE)
+
+myVar=pca.out$sdev^2
+explained=myVar/sum(myVar)
+
+plot(explained, xlab="Principal Component", ylab="Proportion of Variance Explained", ylim=c(0,1),type='b')
+plot(cumsum(explained), xlab="Principal Component", ylab="Cumulative Proportion of Variance Explained", ylim=c(0,1),type='b')
+abline(v=27, col="blue")
+
+Cols=function(vec){
+  cols=rainbow(length(unique(vec)))
+  return(cols[as.numeric(as.factor(vec))])
+}
+
+plot(pca.out$x[,c(1,2)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z2")
+plot(pca.out$x[,c(1,3)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z2")
+
+```
+
 
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
