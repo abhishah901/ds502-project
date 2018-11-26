@@ -244,8 +244,16 @@ Cols=function(vec){
   return(cols[as.numeric(as.factor(vec))])
 }
 
-plot(pca.out$x[,c(1,2)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z2")
-plot(pca.out$x[,c(1,3)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z3")
+plot(pca.out$x[,c(1,2)], col=Cols(log(train.data$Item_Outlet_Sales)), pch=19,xlab="Z1",ylab="Z2")
+plot(pca.out$x[,c(1,3)], col=Cols(log(train.data$Item_Outlet_Sales)), pch=19,xlab="Z1",ylab="Z3")
+
+
+# 3d plot of the first 3 significant components of PCA, gradient color of log of sales
+color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
+  return(colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ])
+}
+library(rgl)
+plot3d(pca.out$x[,1], pca.out$x[,2], pca.out$x[,3], col = color.gradient(log(train.data$Item_Outlet_Sales + 1)))
 
 ```
 
