@@ -214,6 +214,7 @@ test.data_v3 = test.data_v3 %>%
 setdiff(names(train.data_v3),names(test.data_v3))
 ```
 
+
 ```{r}
 library(ggplot2)
 ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
