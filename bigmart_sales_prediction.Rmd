@@ -223,7 +223,7 @@ aside.test.data <- train.data[split,]
 train.data <- train.data[-split,]
 ```
 
-
+### PCA
 ```{r}
 train.data.cat <- Filter(Negate(is.numeric),train.data)
 train.data.num <- Filter(is.numeric,train.data)
@@ -245,8 +245,31 @@ Cols=function(vec){
 }
 
 plot(pca.out$x[,c(1,2)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z2")
-plot(pca.out$x[,c(1,3)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z2")
+plot(pca.out$x[,c(1,3)], col=Cols(train.data$Item_Outlet_Sales), pch=19,xlab="Z1",ylab="Z3")
 
+```
+
+### Forward Feature Selection
+```{r message=FALSE}
+library(leaps)
+forwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='backward')
+summary(forwardSubset)
+names(coef(forwardSubset,9))
+plot(forwardSubset,scale='r2')
+```
+
+```{r}
+library(tree)
+myTree = tree(Item_Outlet_Sales~.,train.data,minsize=50, mindev=.0001)
+plot(myTree)
+text(myTree,pretty=20)
+
+preds <- predict(myTree,train.data)
+sqrt(mean((train.data$Item_Outlet_Sales - preds)^2))
+
+myTree = prune.tree(myTree,best=10)
+plot(myTree)
+text(myTree,pretty=1)
 ```
 
 
