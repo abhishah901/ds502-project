@@ -221,14 +221,61 @@ set.seed(502)
 split <- sample(1:nrow(train.data),1000)
 aside.test.data <- train.data[split,]
 train.data <- train.data[-split,]
+train.data <- as.data.frame(unclass(train.data))
+aside.test.data <- as.data.frame(unclass(aside.test.data))
 ```
+
+### Principal Component Regression
+
+In this section, we fit a Principal Component Regression model. First, we start by find the number of principal components needed to maximize the variance explanation and minimizing the MSE while keeping a reasonable number of components. In our case, the number of Principal Components chosen could be `27` as shown on the graphs below: 
+
+```{r pcr 1}
+library(pls)
+
+pcr.data = subset(train.data, select = -Item_Identifier)
+
+pcr.fit = pcr(Item_Outlet_Sales ~ ., data = pcr.data,center=T, scale = TRUE, validation = "CV", segments= 10)
+
+# variance explanation
+plot(pcr.fit$Xvar/sum(pcr.fit$Xvar), xlab = 'Number of Principal Components', ylab='Variance unexplained')
+abline(v=27, col="blue")
+
+# validation plot
+validationplot(pcr.fit,val.type='MSEP')
+abline(v=27, col="blue")
+```
+
+Once the `ncomp` value chosen, we proceed to a 10-fold cross validation process where we estimate the RMSE for a Principal Component Regression model fitted with the first 27 PCs.
+
+```{r pcr 2}
+k = 10
+
+ncomp = 27
+
+set.seed(123)
+folds = sample(rep(1:k, length = nrow(pcr.data)), replace = T)
+
+cv.errors = rep(0, k)
+
+for (i in 1:k) {
+  pcr.fit <- pcr(Item_Outlet_Sales ~ ., data = pcr.data[folds != i,], scale = TRUE)
+  pred = predict( pcr.fit, pcr.data[folds == i,], ncomp=ncomp)
+  error = mean((pcr.data[folds == i,]$Item_Outlet_Sales - pred)^2)
+  cv.errors[i] = error
+}
+sqrt(mean(cv.errors))
+
+```
+
+We can observe that the estimated value of the RMSE for this model is around `1126.671`.
 
 ### PCA
 ```{r}
-train.data.cat <- Filter(Negate(is.numeric),train.data)
-train.data.num <- Filter(is.numeric,train.data)
-train.data.dum <- dummy_cols(subset(train.data.cat, select = -Item_Identifier))[,-c(1:7)]
-train.data.pca <- data.frame(train.data.num,train.data.dum)
+# train.data.cat <- Filter(Negate(is.numeric),train.data)
+# train.data.num <- Filter(is.numeric,train.data)
+# train.data.dum <- dummy_cols(subset(train.data.cat, select = -Item_Identifier))[,-c(1:7)]
+# train.data.pca <- data.frame(train.data.num,train.data.dum)
+
 Xtrain <- model.matrix(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier))
 pca.out <- prcomp(Xtrain[,-1], scale=TRUE, center=TRUE)
 
@@ -255,6 +302,13 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
 library(rgl)
 plot3d(pca.out$x[,1], pca.out$x[,2], pca.out$x[,3], col = color.gradient(log(train.data$Item_Outlet_Sales + 1)))
 
+```
+
+Finally, we assign transform the (aside) testing set according to the same Principal Component Analysis tranformation that resulted above.
+
+```{r}
+train.pca <- pca.out$x
+aside.test.pca <- predict(pca.out, newdata= aside.test.data)
 ```
 
 ### Forward Feature Selection
