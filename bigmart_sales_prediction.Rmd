@@ -213,38 +213,42 @@ test.data_v3 = test.data_v3 %>%
 ```{r , echo =TRUE}
 setdiff(names(train.data_v3),names(test.data_v3))
 ```
-
+Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
 library(ggplot2)
 ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
   geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  theme_gray() +
   xlab("Outlet identifier") + 
   ylab("Sales") + 
   ggtitle("Sales vs Outlet identifier")
 
 
 ```
-
+The intuition behind the next plot was to know whether the age of the Outlet does affect the Sales or not. As it shows, it doesn't.
 ``` {r}
-library(data.table) #required library for this method
-holder.Year = data.table(train.data_v3)[,sum(Item_Outlet_Sales), by = Outlet_Establishment_Year]
-barplot(setNames(holder.Year$V1,holder.Year$Outlet_Identifier),width = 2, names.arg = unique(train.data_v3$Outlet_Establishment_Year))
-
+ggplot(train.data_v3[1:nrow(train.data_v3),], aes(as.factor(Years_Operating), Item_Outlet_Sales)) +
+  geom_boxplot() +
+  theme_gray() 
+  xlab("Years of Operation") + 
+  ylab("Sales") + 
+  ggtitle("Sales vs Years of Operation")
 ```
-
+Next we try to understand how much is the spread of the price and ranges. 
 ```{r}
 
 ggplot(train.data_v3, aes(x=Item_MRP)) + 
-  geom_density(color = "blue", adjust=1/5) +
-ggtitle("Density of Item MRP")
+  geom_density(adjust=1/6) +
+  xlab("Max. Retail Price")
+  theme_gray()
+ggtitle("Spread of Item MRP")
 
 ```
 ```{r}
 
 ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
   geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
+  theme_gray() +
   xlab("Outlet type") + 
   ylab("Sales") + 
 ggtitle("Sales vs Outlet type")
@@ -257,11 +261,11 @@ ggplot(train.data_v3[1:nrow(train.data_v3),], aes(x = Item_Type, y = Item_Outlet
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Item type") + 
   ylab("Sales") + 
-ggtitle("Sales vs Item type")
+  ggtitle("Sales vs Item type")
 ```
 
 ```{r}
-ggplot(train.data_v3, aes(Item_Type, Item_Visibility, fill = Outlet_Size)) +
+ggplot(train.data_v3, aes(Item_Type, Item_Visibility_v2, fill = Outlet_Size)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Item Type") + 
@@ -270,21 +274,23 @@ ggtitle("Item visibility vs Item Type")
 ```
 
 ```{r}
-ggplot(train.data_v3, aes(Outlet_Identifier, Item_Visibility_Ratio)) +
+ggplot(train.data_v3, aes(Outlet_Identifier, Item_Visibility_v2)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Outlet_Identifier") + 
-  ylab("Item Visibility Ratio") + 
-ggtitle("Item visibility Ratio vs Outlet identifier")
+  ylab("Item Visibility") + 
+ggtitle("Item visibility vs Outlet identifier")
 ```
 
 ```{r}
 ggplot() + 
-geom_density(aes(x=Item_Visibility), colour="red", data=train.data_v3)
+geom_density(aes(x=Item_Visibility_v2), colour="red", data=train.data_v3)
+
 ```
 ```{r}
-ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Item_Visibility, Item_Outlet_Sales)) +
+ggplot(train.data_v3[1:nrow(train.data_v3),], aes(Item_Visibility_v2, Item_Outlet_Sales)) +
   geom_point(size = 2.5, aes(colour = factor(Outlet_Type))) +
+  theme_light()
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
   xlab("Item Visibility") + 
   ylab("Item Outlet Sales") +
