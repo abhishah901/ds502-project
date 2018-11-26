@@ -200,7 +200,7 @@ test.data = test.data %>%
   filter(Item_Visibility>0) %>% 
   group_by(Outlet_Identifier, Item_Type) %>% 
   summarise(Item_Visibility_Avg = mean(Item_Visibility)) %>% 
-  merge(train.data, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
+  merge(test.data, ., by=c("Outlet_Identifier", "Item_Type")) %>% 
   ungroup() %>% 
   mutate(Item_Visibility = ifelse(Item_Visibility==0,Item_Visibility_Avg,Item_Visibility) ) 
   
