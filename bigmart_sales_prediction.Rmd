@@ -217,10 +217,12 @@ setdiff(names(train.data),names(test.data))
 ```{r, echo=TRUE}
 
 library(xgboost)
+library(Matrix)
 train.data.matrix <- train.data %>%
+  # select(-c("Outlet_Identifier", "Item_Identifier"))
   select(-c("Outlet_Identifier", "Item_Identifier"))
 
-X.train <- sparse.model.matrix(Item_Outlet_Sales ~ ., data = check.train)[, -1]
+X.train <- sparse.model.matrix(Item_Outlet_Sales ~ ., data = train.data.matrix)[, -1]
 
 y.train <- train.data$Item_Outlet_Sales
 
@@ -228,7 +230,8 @@ best_param <- list()
 best_rmse <- Inf
 best_rounds <- NULL
 
-for (iter in 1:50) {
+for (iter in 1:100) {
+  set.seed(502)
   param <- list(objective = "reg:linear",
                 eval_metric = "rmse",
                 max_depth = sample(1:10, 1),
@@ -255,24 +258,40 @@ for (iter in 1:50) {
 ```
 
 ```{r, echo=TRUE}
-best.xgb.cv.fit <- xgb.cv(data = X.train, label = y.train,
+cat("best_param:")
+best_param
+cat("best_rmse:")
+best_rmse
+cat("best_rounds:")
+cat(best_rounds)
+
+set.seed(502)
+best.xgb.cv.fit <- xgboost(data = X.train, label = y.train,
                  params = best_param, nfold = cv.nfold, nthread = 4,
                  nrounds = best_rounds,
                  verbose = F, maximize = FALSE)
 
 # We plot iteration vs train rmse to detect knee in the plot, so that we don't overfit the model
-plot(best.xgb.cv.fit$evaluation_log[1:50, c(1,2)])
+plot(best.xgb.cv.fit$evaluation_log[, c(1,2)])
 
 knee_rounds = 15
-xgb.cv.fit <- xgb.cv(data = X.train, label = y.train,
+set.seed(502)
+xgb.fit <- xgboost(data = X.train, label = y.train,
                  params = best_param, nfold = cv.nfold, nthread = 4,
                  nrounds = knee_rounds,
                  verbose = F, maximize = FALSE)
 
 # RMSE of the model
 tail(xgb.cv.fit$evaluation_log, 1)
+
+# Plot importances
+xgb.plot.importance(xgb.importance(model = xgb.fit))
 ```
 
+
+```{r}
+cv.forest <- rfcv(as.dataframe(unclass(train.data)),train.data$Item_Outlet_Sales,cv.fold=5, step=0.66)
+```
 
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
