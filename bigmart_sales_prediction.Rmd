@@ -501,7 +501,7 @@ cat('Lasso Regression RMSE: ',sqrt(min(error)))
 
 As we see in the table above, all the `Outlet_Type` and `Outlet_Identifier` (almost) are kept for creating the linear regression model with the lowest RMSE. On the other side, the numerical variables `Item_MRP`and `Item_Visibility` are also kept for this regression.
 
-Below, we can see the plot of the coefficients corresponding to the features for a given $\lambda$. The green dots correspond to the $\lambda\ value (`r myLambda[which.min(errors)]`) with the lowest error (`r sqrt(min(error))`).
+Below, we can see the plot of the coefficients corresponding to the features for a given $\lambda$. The green dots correspond to the $\lambda$ value (`r myLambda[which.min(errors)]`) with the lowest error (`r sqrt(min(error))`).
 
 ```{r lasso 2, message=FALSE, warning=FALSE}
 plot(myCoef[2:20,90],col='red',pch=1, ylab='Coefficients', xlab='Lambda')
