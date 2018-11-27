@@ -403,7 +403,54 @@ text(myTree,pretty=1)
 
 ### Boosting
 
-```{r, echo=TRUE}
+```{r boost-comp}
+library(gbm)
+
+trainData <- subset(train.data, select=-Item_Identifier)
+boo.mse = array(0,10)
+
+for (i in 1:16) {
+      trees = i*250
+      
+    myBoost = gbm(formula=Item_Outlet_Sales~., data=trainData, shrinkage=0.01,interaction.depth=3, n.trees=trees, verbose = T)
+
+    preds <- predict(myBoost, newdata= trainData, n.trees=trees)
+
+    boo.mse[i] = sqrt(mean((trainData$Item_Outlet_Sales - preds)^2))
+}
+plot(1:16 * 250,boo.mse, xlab='Number of trees', ylab='RMSE')+
+abline(v=3750, col='blue')
+```
+
+```{r boosting}
+
+boo.data<-train.data[sample(nrow(train.data)),]
+
+ntrees = 3750
+
+
+folds <- cut(seq(1,nrow(boo.data)),breaks=10,labels=FALSE)
+
+boo.mse = array(0,10)
+for(i in 1:10){
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    valData <- boo.data[testIndexes, ]
+    trainData <- boo.data[-testIndexes, ]
+    
+    myBoost = gbm(formula=Item_Outlet_Sales~., data=subset(trainData, select=-Item_Identifier), shrinkage=0.01, interaction.depth=2, n.trees=ntrees)
+
+    preds <- predict(myBoost, newdata= valData, n.trees=ntrees)
+
+    boo.mse[i] = sqrt(mean((valData$Item_Outlet_Sales - preds)^2))
+}
+
+boo.rmse <- mean(boo.mse)
+
+cat('Boosting RMSE: ',boo.rmse)
+
+```
+
+```{r xgboost}
 
 library(xgboost)
 library(Matrix)
@@ -477,17 +524,17 @@ tail(xgb.cv.fit$evaluation_log, 1)
 xgb.plot.importance(xgb.importance(model = xgb.fit))
 ```
 
-### Random forest
+### Bagging (Random forest)
 
 ```{r rforest}
 library(randomForest)
 train.rf <- subset(train.data, select=-Item_Identifier)
 
-myForest = randomForest(formula=Item_Outlet_Sales~., data=train.rf, do.trace=T)
+myForest = randomForest(formula=Item_Outlet_Sales~., data=train.rf, do.trace=T, ntree=30)
 
 summary(myForest)
 
-preds <- predict(myForest, newdata= test.rf)
+preds <- predict(myForest, newdata= train.rf)
 
 sqrt(mean((train.rf$Item_Outlet_Sales - preds)^2))
 ```
@@ -539,27 +586,25 @@ Now we fit our model on the whole training data and calculate the RMSE.
 
 ```{r ns 2}
 
-train.data<-train.data[sample(nrow(train.data)),]
+ns.data<-train.data[sample(nrow(train.data)),]
 
 
-folds <- cut(seq(1,nrow(train.data)),breaks=10,labels=FALSE)
+folds <- cut(seq(1,nrow(ns.data)),breaks=10,labels=FALSE)
 
-ns.rmse = array(0,10)
+ns.mse = array(0,10)
 for(i in 1:10){
-    
     testIndexes <- which(folds==i,arr.ind=TRUE)
-    valData <- train.data[testIndexes, ]
-    trainData <- train.data[-testIndexes, ]
+    valData <- ns.data[testIndexes, ]
+    trainData <- ns.data[-testIndexes, ]
     
-    FitMRP = lm(trainData$Item_Outlet_Sales~ns(trainData$Item_MRP,knots=c(69,136,203)))
-    PredMRP = predict(FitMRP,newdata=trainData,se=TRUE)
-    ns.rmse[i] = sqrt(mean((PredMRP$fit - trainData$Item_Outlet_Sales)^2))
+    FitMRP = lm(Item_Outlet_Sales~ns(Item_MRP,knots=c(69,136,203)), data = trainData)
+    PredMRP = predict(FitMRP,newdata=valData,se=TRUE)
+    ns.mse[i] = sqrt(mean((PredMRP$fit - valData$Item_Outlet_Sales)^2))
 }
 
-avg.rmse <- mean(ns.rmse)
+ns.rmse <- mean(ns.mse)
 
-cat('Natural Spline RMSE(Item_MRP: ',avg.rmse)
-
+cat('Natural Spline RMSE(Item_MRP: ',ns.rmse)
 
 ```
 
