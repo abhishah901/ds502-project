@@ -1,6 +1,6 @@
 ---
 title: "Project DS502"
-author: "Mahdi Alouane and Rahul Pande"
+author: "Abhishek Shah, Mahdi Alouane, Rahul Pande and Sam Longenbach"
 output:
   pdf_document:
     latex_engine: xelatex
