@@ -546,7 +546,7 @@ for (i in 1:k.cv){
   cv.rmse[i] = rmse
 }
 xgb.rmse = mean(cv.rmse)
-cat('XGBoost RMSE: ',sgb.rmse)
+cat('XGBoost Train RMSE: ', xgb.rmse)
 ```
 
 ![KNN rmse plot](knn_pca_rmse_plot.png)
