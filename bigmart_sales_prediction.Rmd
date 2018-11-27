@@ -637,21 +637,22 @@ boo.mse = array(0,10)
 for (i in 1:16) {
       trees = i*250
       
-    myBoost = gbm(formula=Item_Outlet_Sales~., data=trainData, shrinkage=0.01,interaction.depth=3, n.trees=trees, verbose = T)
+    myBoost = gbm(formula=Item_Outlet_Sales~., data=trainData, shrinkage=0.01,interaction.depth=3, n.trees=trees, verbose = F,
+                  distribution = "gaussian")
 
     preds <- predict(myBoost, newdata= trainData, n.trees=trees)
 
     boo.mse[i] = sqrt(mean((trainData$Item_Outlet_Sales - preds)^2))
 }
 plot(1:16 * 250,boo.mse, xlab='Number of trees', ylab='RMSE')+
-abline(v=3750, col='blue')
+abline(v=1000, col='blue')
 ```
 
 ```{r boosting}
 
 boo.data<-train.data[sample(nrow(train.data)),]
 
-ntrees = 3750
+ntrees = 1000
 
 
 folds <- cut(seq(1,nrow(boo.data)),breaks=10,labels=FALSE)
@@ -662,7 +663,8 @@ for(i in 1:10){
     valData <- boo.data[testIndexes, ]
     trainData <- boo.data[-testIndexes, ]
     
-    myBoost = gbm(formula=Item_Outlet_Sales~., data=subset(trainData, select=-Item_Identifier), shrinkage=0.01, interaction.depth=2, n.trees=ntrees)
+    myBoost = gbm(formula=Item_Outlet_Sales~., data=subset(trainData, select=-Item_Identifier), shrinkage=0.01,
+                  interaction.depth=2, n.trees=ntrees, distribution = "gaussian")
 
     preds <- predict(myBoost, newdata= valData, n.trees=ntrees)
 
@@ -859,6 +861,13 @@ We can see that the model above is not performing well since its RMSE is around 
 
 We can conclude that this is due to a poor fit of the underlying function since it's based on only one predictor.
 
-# Conclusion
 
+# Evaluation
+
+![Model Performances](model_evaluation.png)
+
+From the table, we observe boosting trees perform better in our case.
+
+# Conclusion
+Overall, we cleaned the data and explored it the using ggplot visualizations. Once we cleaned the data we used Forward,Backward,Lasso, and PCA for feature selection. After some basic feature engineering, we implemented the models above. After accessing models the we decided that the Boosting Trees model was the superior model. We went on to submit this model and got a RMSE of 1152.63. 
 
