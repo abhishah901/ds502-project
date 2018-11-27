@@ -280,7 +280,7 @@ ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales
 
 ## Simple Linear Models
 
-```{r linear all vars, echo=TRUE}
+```{r linear all vars}
 linear.fit <- lm(Item_Outlet_Sales ~ ., data = subset(train.data, select = -Item_Identifier))
 summary(linear.fit)
 
@@ -306,14 +306,14 @@ sqrt(mean(cv.errors))
 
 From the linear model, we can see that the sales of a particular item depends mainly on the store where it is sold and what the MRP is. The rmse is 1124. $R^{2}$ = 0.56. So only 56% of the variance in the output is explained by this linear model
 
-```{r linear mrp, echo=TRUE}
+```{r linear mrp}
 linear.mrp.fit <- lm(Item_Outlet_Sales ~ Item_MRP, data = subset(train.data, select = -Item_Identifier))
 summary(linear.mrp.fit)
 ```
 
 From the summary, we see that $R^{2}$ has dropped to 0.3, far less than the previous linear model with all the variables.
 
-```{r linear size.type, echo=TRUE}
+```{r linear size.type}
 linear.size.type.fit <- lm(Item_Outlet_Sales ~ Outlet_Size * Outlet_Type, data = subset(train.data, select = -Item_Identifier))
 summary(linear.size.type.fit)
 ```
@@ -516,7 +516,7 @@ We can clearly see that for a high value of $\lambda$ all the coefficients are s
 
 In the plot of the principal components above we saw some gradient clustering of the `Item_Outlet_Sales`, we want to check if knn on top of PCA performs any better. We determine the best number of neighbours and the best number of principal components by cross-validation.
 
-```{r knn pca, echo=TRUE}
+```{r knn pca}
 require(FNN)
 
 k.nn = 3:10
@@ -732,7 +732,7 @@ for (iter in 1:100) {
 Now we plot the `rmse` against the number of trees to see the knee in the curve. We don't want to overfit.
 From the plot below that 15 is the number of trees after which the error does not drop significantly.
 
-```{r, echo=TRUE}
+```{r}
 cat("best_param:")
 best_param
 cat("best_rmse:")
