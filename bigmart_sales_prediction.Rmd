@@ -225,6 +225,50 @@ train.data <- as.data.frame(unclass(train.data))
 aside.test.data <- as.data.frame(unclass(aside.test.data))
 ```
 
+### Data Exploration
+
+First, we started by looking at the data to find any interesting relationships between our predictors.
+
+One of the most obvious relashionships is between 
+
+```{r mrp-sales}
+
+ggplot(train.data, aes(x=Item_MRP), fill='blue') + 
+  geom_density(adjust=1/6) +
+  geom_vline(xintercept = 69, color="red")+
+  geom_vline(xintercept = 136, color="red")+
+geom_vline(xintercept = 203, color="red") +
+  xlab("Max. Retail Price")+
+ggtitle("Spread of Item MRP")
+
+```
+
+```{r outlet-sales}
+
+ggplot(train.data[1:nrow(train.data),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
+  geom_boxplot() +
+  theme_gray() +
+  xlab("Outlet type") + 
+  ylab("Sales") + 
+ggtitle("Sales vs Outlet type")
+
+
+```
+
+```{r sales-out_id}
+library(ggplot2)
+ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
+  geom_boxplot() +
+  theme_gray() +
+  xlab("Outlet identifier") + 
+  ylab("Sales") + 
+  ggtitle("Sales vs Outlet identifier")
+
+
+```
+
+### Linear Model
+
 ### Principal Component Regression
 
 In this section, we fit a Principal Component Regression model. First, we start by find the number of principal components needed to maximize the variance explanation and minimizing the MSE while keeping a reasonable number of components. In our case, the number of Principal Components chosen could be `27` (corresponds to the knee in the curve) as shown on the graphs below: 
@@ -510,88 +554,3 @@ cat('Natural Spline RMSE(Item_MRP: ',avg.rmse)
 We can see that the model above is not performing well since its RMSE is around 1397.588 which is higher than the previous models.
 
 We can conclude that this is due to a poor fit of the underlying function since it's based on only one predictor.
-
-Lets try to look at each Outlet individual and how good are the sales for each of them.
-```{r}
-library(ggplot2)
-ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales)) +
-  geom_boxplot() +
-  theme_gray() +
-  xlab("Outlet identifier") + 
-  ylab("Sales") + 
-  ggtitle("Sales vs Outlet identifier")
-
-
-```
-The intuition behind the next plot was to know whether the age of the Outlet does affect the Sales or not. As it shows, it doesn't.
-``` {r}
-ggplot(train.data[1:nrow(train.data),], aes(as.factor(Years_Operating), Item_Outlet_Sales)) +
-  geom_boxplot() +
-  theme_gray() 
-  xlab("Years of Operation") + 
-  ylab("Sales") + 
-  ggtitle("Sales vs Years of Operation")
-```
-Next we try to understand how much is the spread of the price and ranges. 
-```{r}
-
-ggplot(train.data, aes(x=Item_MRP)) + 
-  geom_density(adjust=1/6) +
-  xlab("Max. Retail Price")
-  theme_gray()
-ggtitle("Spread of Item MRP")
-
-```
-```{r}
-
-ggplot(train.data[1:nrow(train.data),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
-  geom_boxplot() +
-  theme_gray() +
-  xlab("Outlet type") + 
-  ylab("Sales") + 
-ggtitle("Sales vs Outlet type")
-
-
-```
-```{r}
-ggplot(train.data[1:nrow(train.data),], aes(x = Item_Type, y = Item_Outlet_Sales, fill = Outlet_Type)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
-  xlab("Item type") + 
-  ylab("Sales") + 
-  ggtitle("Sales vs Item type")
-```
-
-```{r}
-ggplot(train.data, aes(Item_Type, Item_Visibility_v2, fill = Outlet_Size)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
-  xlab("Item Type") + 
-  ylab("Item Visibility") + 
-ggtitle("Item visibility vs Item Type")
-```
-
-```{r}
-ggplot(train.data, aes(Outlet_Identifier, Item_Visibility_v2)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
-  xlab("Outlet_Identifier") + 
-  ylab("Item Visibility") + 
-ggtitle("Item visibility vs Outlet identifier")
-```
-
-```{r}
-ggplot() + 
-geom_density(aes(x=Item_Visibility_v2), colour="red", data=train.data)
-
-```
-```{r}
-ggplot(train.data[1:nrow(train.data),], aes(Item_Visibility_v2, Item_Outlet_Sales)) +
-  geom_point(size = 2.5, aes(colour = factor(Outlet_Type))) +
-  theme_light()
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, color = "black")) + 
-  xlab("Item Visibility") + 
-  ylab("Item Outlet Sales") +
-  ggtitle("Item Sales vs Item Visibility")
-
-```
