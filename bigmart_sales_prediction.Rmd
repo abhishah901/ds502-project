@@ -15,12 +15,12 @@ knitr::opts_chunk$set(echo = TRUE,
                       tidy.opts=list(width.cutoff=60))
 # https://www.calvin.edu/~rpruim/courses/s341/S17/from-class/MathinRmd.html
 ```
-
+Import the training and testing datasets while converting white spaces to NAs as well
 ```{r , echo =TRUE}
 train.data <- read.csv('./bigmart_train.csv', stringsAsFactors = FALSE, na.strings = c(""))
 test.data <- read.csv('./bigmart_test.csv', stringsAsFactors = FALSE, na.strings = c(""))
 ```
-
+Then we first check for the presence of NA values.
 ```{r , echo =TRUE}
 check.na.values <- function(df){
   colSums(apply(df, 2, is.na))
@@ -153,7 +153,8 @@ After this, we check if there is any missing values in the testing set:
 ```{r , echo =TRUE}
 check.na.values(test.data)
 ```
-
+Since there are no more missing values we proceed further with data cleaning.
+After observing the Item_Fat_Content, we found that different labels represented same information. To fix that, remap the labels to only two logically significant labels, namely, low_fat and regular. 
 ```{r , echo =TRUE}
 mapping_values <- c("low_fat", "low_fat", "low_fat", "regular", "regular")
 names(mapping_values) <- c("LF", "low fat", "Low Fat", "reg", "Regular")
@@ -169,14 +170,20 @@ test.data <- test.data %>%
 ##Feature Engineering:  
 
 ###Train:
+1. Since the Outlet_Establishment_Year is in years, which is logically numeric, we transform it to the Years_Operating and then drop the column.
+2. We created a feature named Item_Cat which represents the Category of the Item. It's created from the first two letters of Item_Identifier labels which represents the category of the products.
+3. We then observed that some Non-consumables have either low_fat or regular, which doesn't really make sense. So we changed those labels accordingly.
+4. We observed that a lot of Items with 0% visibility that have made sales. We fixed that by taking the aggregated visibility of the same item and setting the visibility to the obtained aggregated value
 ```{r , echo =TRUE}
 train.data = train.data %>% 
+  ####### 1.
   mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
-  mutate(Item_Cat = substr(Item_Identifier,1,2)) %>% 
-  # rowwise() %>% 
-  mutate(Item_Fat_Content = ifelse(Item_Cat=="NC","not_edible",Item_Fat_Content)) %>% 
+  ####### 2.
+  mutate(Item_Cat = substr(Item_Identifier,1,2)) %>%   # rowwise() %>% 
+  ####### 3.
+  mutate(Item_Fat_Content = ifelse(Item_Cat=="NC","not_edible",Item_Fat_Content)) %>%  
   select(-c(Outlet_Establishment_Year)) 
-
+###### 4.
 train.data = train.data %>% 
   filter(Item_Visibility>0) %>% 
   group_by(Outlet_Identifier, Item_Type) %>% 
@@ -190,7 +197,7 @@ train.data = train.data %>%
   select(-c(Item_Visibility_Avg)) 
   
 ```
-
+Applying the same steps on the test data set, so that are models stay healthy for test set as well.
 ###Test:
 ```{r , echo =TRUE}
 test.data = test.data %>% 
