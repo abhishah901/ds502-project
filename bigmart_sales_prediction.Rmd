@@ -290,7 +290,7 @@ k = 10
 ncomp = 27
 
 set.seed(502)
-folds = sample(rep(1:k, length = nrow(pcr.data)), replace = T)
+folds = sample(rep(1:k, length = nrow(train.data)), replace = T)
 
 cv.errors = rep(0, k)
 
