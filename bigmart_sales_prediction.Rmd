@@ -224,7 +224,7 @@ test.data = test.data %>%
 setdiff(names(train.data),names(test.data))
 ```
 
-Finally, we split sample from our training set 1000 observations that we are going to keep aside.
+Finally, we split sample from our training set 1000 observations that we are going to keep aside(in the vault).
 
 ```{r}
 set.seed(502)
@@ -239,7 +239,8 @@ aside.test.data <- as.data.frame(unclass(aside.test.data))
 
 First, we started by looking at the data to find any interesting relationships between our predictors.
 
-One of the most obvious relashionships is between 
+One of the most obvious relashionships are between Maximum Retail Price or MRP of the items and their sales.
+So we observe that there are 4 ranges of MRP accross all the items
 
 ```{r mrp-sales}
 
@@ -252,7 +253,7 @@ geom_vline(xintercept = 203, color="red") +
 ggtitle("Spread of Item MRP")
 
 ```
-
+We also try to plot the sales against the type of outlet colored based on the outlet size. We get some interesting observations which were explained in the presentation.
 ```{r outlet-sales}
 
 ggplot(train.data[1:nrow(train.data),], aes(x = Outlet_Type, y = Item_Outlet_Sales, fill = Outlet_Size)) +
@@ -264,6 +265,7 @@ ggtitle("Sales vs Outlet type")
 
 
 ```
+Next are the sales of each of the 10 outlets. The intuition behind the plot was to observe which outlets perform well and which do not.
 
 ```{r sales-out_id}
 library(ggplot2)
