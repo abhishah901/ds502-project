@@ -221,7 +221,136 @@ set.seed(502)
 split <- sample(1:nrow(train.data),1000)
 aside.test.data <- train.data[split,]
 train.data <- train.data[-split,]
+train.data <- as.data.frame(unclass(train.data))
+aside.test.data <- as.data.frame(unclass(aside.test.data))
 ```
+
+### Principal Component Regression
+
+In this section, we fit a Principal Component Regression model. First, we start by find the number of principal components needed to maximize the variance explanation and minimizing the MSE while keeping a reasonable number of components. In our case, the number of Principal Components chosen could be `27` (corresponds to the knee in the curve) as shown on the graphs below: 
+
+```{r pcr 1}
+library(pls)
+
+pcr.data = subset(train.data, select = -Item_Identifier)
+
+pcr.fit = pcr(Item_Outlet_Sales ~ ., data = pcr.data,center=T, scale = TRUE, validation = "CV", segments= 10)
+
+# variance explanation
+plot(cumsum(pcr.fit$Xvar/sum(pcr.fit$Xvar)), xlab = 'Number of Principal Components', ylab='Cumulative Proportion of Variance Explained')
+abline(v=27, col="blue")
+
+# validation plot
+validationplot(pcr.fit,val.type='MSEP')
+abline(v=27, col="blue")
+```
+
+Once the `ncomp` value chosen, we proceed to a 10-fold cross validation process where we estimate the RMSE for a Principal Component Regression model fitted with the first 27 PCs.
+
+```{r pcr 2}
+k = 10
+
+ncomp = 27
+
+set.seed(123)
+folds = sample(rep(1:k, length = nrow(pcr.data)), replace = T)
+
+cv.errors = rep(0, k)
+
+for (i in 1:k) {
+  pcr.fit <- pcr(Item_Outlet_Sales ~ ., data = pcr.data[folds != i,], scale = TRUE)
+  pred = predict( pcr.fit, pcr.data[folds == i,], ncomp=ncomp)
+  error = mean((pcr.data[folds == i,]$Item_Outlet_Sales - pred)^2)
+  cv.errors[i] = error
+}
+sqrt(mean(cv.errors))
+
+```
+
+We can observe that the estimated value of the RMSE for this model is around `1126.671`.
+
+### PCA
+
+In this section, we are trying to reduce the number of our predictors by finding a normalized linear combination of the original predictors in a data set (41 predictors after hot enconding). In order to do this, we perform a Principal Component Analysis which is a generalization of the above-mentionned PCR where we extract the PCs to give us the possiblity to use them with any other model.
+
+First, we fit our model and plot the proportion of variance explained vs. the number of first principal components chosen.
+
+```{r pca 1}
+# train.data.cat <- Filter(Negate(is.numeric),train.data)
+# train.data.num <- Filter(is.numeric,train.data)
+# train.data.dum <- dummy_cols(subset(train.data.cat, select = -Item_Identifier))[,-c(1:7)]
+# train.data.pca <- data.frame(train.data.num,train.data.dum)
+
+train.data.num <- model.matrix(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier))
+pca.out <- prcomp(train.data.num[,-1], scale=TRUE, center=TRUE)
+
+myVar=pca.out$sdev^2
+explained=myVar/sum(myVar)
+
+plot(explained, xlab="Principal Component", ylab="Proportion of Variance Explained", ylim=c(0,1),type='b')
+plot(cumsum(explained), xlab="Principal Component", ylab="Cumulative Proportion of Variance Explained", ylim=c(0,1),type='b')
+abline(v=27, col="blue")
+"PC27"
+summary(pca.out)$importance[,27]
+```
+
+As expected, the number of principal components that corresponds to the knee in the curve is around `27`, which confirms the value previously chosen in the PCR section.
+
+Now, we plot our data according to the 1st and 2nd Principal Components and then according to the 1st and 3rd Principal Components.
+
+```{r pca 2}
+
+Cols=function(vec){
+  cols=rainbow(length(unique(vec)))
+  return(cols[as.numeric(as.factor(vec))])
+}
+
+plot(pca.out$x[,c(1,2)], col=Cols(log(train.data$Item_Outlet_Sales)), pch=19,xlab="PC1",ylab="PC2")
+plot(pca.out$x[,c(1,3)], col=Cols(log(train.data$Item_Outlet_Sales)), pch=19,xlab="PC1",ylab="PC3")
+
+
+# 3d plot of the first 3 significant components of PCA, gradient color of log of sales
+color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
+  return(colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ])
+}
+
+#library(rgl)
+#plot3d(pca.out$x[,1], pca.out$x[,2], pca.out$x[,3], col = color.gradient(log(train.data$Item_Outlet_Sales + 1)))
+
+```
+
+We can observe that, unexpectedly, the representation of the data according to the first and second PCs presents well-spreaded, however, less homogenious repartition of the data accroding to the target class `Item_Outlet_Sales`. On the other side, both of these plots represent a poor visualization of our data since they explain barely 22.8% of the variance for the first two components and even less for the 1st and 3rd combined.
+
+Finally, we assign transform the (aside) testing set according to the same Principal Component Analysis tranformation that resulted above.
+
+```{r}
+train.pca <- pca.out$x
+aside.test.pca <- predict(pca.out, newdata= aside.test.data)
+```
+
+### Forward Feature Selection
+```{r message=FALSE}
+library(leaps)
+forwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='backward')
+summary(forwardSubset)
+names(coef(forwardSubset,9))
+plot(forwardSubset,scale='r2')
+```
+
+```{r}
+library(tree)
+myTree = tree(Item_Outlet_Sales~.,train.data,minsize=50, mindev=.0001)
+plot(myTree)
+text(myTree,pretty=20)
+
+preds <- predict(myTree,train.data)
+sqrt(mean((train.data$Item_Outlet_Sales - preds)^2))
+
+myTree = prune.tree(myTree,best=10)
+plot(myTree)
+text(myTree,pretty=1)
+```
+
 
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
