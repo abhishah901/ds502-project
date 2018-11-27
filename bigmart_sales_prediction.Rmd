@@ -294,7 +294,7 @@ summary(linear.mrp.fit)
 
 From the summary, we see that $R^{2}$ has dropped to 0.3, far less than the previous linear model with all the variables.
 
-```{r linear mrp, echo=TRUE}
+```{r linear size.type, echo=TRUE}
 linear.size.type.fit <- lm(Item_Outlet_Sales ~ Outlet_Size * Outlet_Type, data = subset(train.data, select = -Item_Identifier))
 summary(linear.size.type.fit)
 ```
@@ -495,6 +495,8 @@ We can clearly see that for a high value of $\lambda$ all the coefficients are s
 
 ### PC-KNN
 
+In the plot of the principal components above we saw some gradient clustering of the `Item_Outlet_Sales`, we want to check if knn on top of PCA performs any better. We determine the best number of neighbours and the best number of principal components by cross-validation.
+
 ```{r knn pca, echo=TRUE}
 require(FNN)
 
@@ -546,6 +548,8 @@ for (i in 1:k.cv){
 xgb.rmse = mean(cv.rmse)
 cat('XGBoost RMSE: ',sgb.rmse)
 ```
+
+![KNN rmse plot](knn_pca_rmse_plot.png)
 
 ## Tree-Based Models
 
