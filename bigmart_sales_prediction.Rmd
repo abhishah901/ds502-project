@@ -278,7 +278,7 @@ ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales
   ggtitle("Sales vs Outlet Identifier")
 ```
 
-### Linear Model
+## Linear Models
 
 ```{r linear all vars, echo=TRUE}
 linear.fit <- lm(Item_Outlet_Sales ~ ., data = subset(train.data, select = -Item_Identifier))
@@ -406,27 +406,50 @@ aside.test.pca <- predict(pca.out, newdata= model.matrix(Item_Outlet_Sales~.,
                                                          )[,-1])
 ```
 
+## Feature selection & Dimensionality reduction
+
+After looking at the data, we noticed that, since our dataset is a mixture of categorical (7) and numerical (7) features, we are going to need to hot encode our data in order to be able to apply a big number of resgression algorithms.
+
+That said, the fact that some of the categorical features have up to 10 different values (10 level factors) would introduce a lot of new features after dummy encoding and we finished up with 41 features after one hot encoding (the first generated feature is always dropped).
+Hence, a reduction of the number of features should processed.
+
+In the next sections, we are going to try different feature selectio and dimentionality reduction techniques and discuss them.
+
 ### Forward Feature Selection
+
+First, we start with subset selection and given the fact that we cannot perform a best subset feature selection on our data due to the large computation complexity, we try to approximate it with forward feature selection as shown below:
+
 ```{r ffs, message=FALSE, warning=FALSE}
 library(leaps)
 forwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='forward')
-names(coef(forwardSubset,9))
 plot(forwardSubset,scale='r2')
-knitr::kable(data.frame(selected_features = names(coef(backwardSubset,9))[-1]), caption='Forward Selection')
+knitr::kable(data.frame(selected_features = names(coef(forwardSubset,9))[-1]), caption='Forward Selection')
 ```
+
+We can see that the forward selection outputs a 9 feature subset (8 + intercept) as an estimation of the best subset features selection with `Item_Visibility`, 3 of the hot encoded `Outlet_Identifier` columns (corresponding to 3 outlets), 2 of the `Outlet_Location` and one `Outlet_Size`. We can interpret that according to FFS, these features are more important than the other, i.e. for `Outlet_Size`, knowing if the outlet is of medium size or not matters more than knowing what exactly is the size of the outlet (small or big).
 
 ### Backward Feature Selection
 
+In this section, we try again to estimate the best subset of features following another method which is backward subset selection as shown below:
+
 ```{r bfs, message=FALSE, warning=FALSE}
-library(leaps)
 backwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='backward')
 plot(backwardSubset,scale='r2')
 knitr::kable(data.frame(selected_features = names(coef(backwardSubset,9))[-1]), caption='Bakcward Selection')
 ```
 
+We can observe clearly through the output of BFS that this estimation gives a high importance to the `Outlet_Identifier` feature and we can see again the `Item_Cat` corresponding to the value food which means that knowing if our item is a food product or not would help the prediction of the `Item_Outlet_Sales`.
+
 ### Lasso Regression
 
-```{r lasso}
+In this section, we are going to try to reduce the number of feature using Lasso. However, the tricky parts resides in choosing the $\lambda$ value corresponding to the best penalty for our case, namely, a $\lambda$ value that reduces the variance to prevent overfitting without increasing the bias too much. (yet another variance-bias tradeoff situation)
+
+Hence, we execute a Lasso regression with different values of Lambda, we predict the sales for our validation (aside.test.data) set and then we calculate the error for each $\lambda$.
+
+The plot below shows the evolution of the error with respect to different values of $\lambda$. The red point show the value corresponding to the lowest MSE.
+
+```{r lasso 1, message=FALSE, warning=FALSE}
+library(glmnet)
 XTrain = model.matrix(Item_Outlet_Sales~.,                                                         subset(train.data, select= -Item_Identifier))
 
 YTrain = train.data$Item_Outlet_Sales
@@ -447,19 +470,34 @@ for (i in 1:100) {
   errors[i] = mean( (YTest - myPredict[,i])^2 )
 }
 
+plot(myLambda,errors,type='l', xlab='Lambda', ylab='MSE')+
+  points(x=c(myLambda[which.min(errors)]), y = min(errors), pch=16, col='red')
+
+coefs = myCoef[-1,which.min(errors)]
+
+knitr::kable(data.frame(selected_features=names(which(coefs != 0)), coefficients= coefs[coefs != 0])[-1])
+cat('Lasso Regression RMSE: ',sqrt(min(error)))
+
+```
+
+As we see in the table above, all the `Outlet_Type` and `Outlet_Identifier` (almost) are kept for creating the linear regression model with the lowest RMSE. On the other side, the numerical variables `Item_MRP`and `Item_Visibility` are also kept for this regression.
+
+Below, we can see the plot of the coefficients corresponding to the features for a given $\lambda$. The green dots correspond to the $\lambda\ value (`r myLambda[which.min(errors)]`) with the lowest error (`r sqrt(min(error))`).
+
+```{r lasso 2, message=FALSE, warning=FALSE}
 plot(myCoef[2:20,90],col='red',pch=1, ylab='Coefficients', xlab='Lambda')
 points(myCoef[2:20,which.min(errors)],col='green',pch=16)
 points(myCoef[2:20,30],col='yellow',pch=4)
 points(myCoef[2:20,1],col='blue',pch=3)
-
-plot(myLambda,errors,type='l', xlab='Lambda', ylab='Error')+
-  points(x=c(myLambda[which.min(errors)]), y = min(errors), pch=16, col='red')
-
-myCoef[,which.min(errors)]
-cat('Lasso Regression RMSE: ',sqrt(min(error)))
 ```
 
+We can clearly see that for a high value of $\lambda$ all the coefficients are set to zero which means that the penalty is too large for finding any feature important enough to be kept.
+
+### PC-KNN
+
 ```{r knn pca, echo=TRUE}
+require(FNN)
+
 k.nn = 3:10
 k.cv = 5
 total_comps = dim(train.pca)[2]
@@ -505,10 +543,13 @@ for (i in 1:k.cv){
   rmse = sqrt(mean((train.data$Item_Outlet_Sales[folds==i] - knn.pca.fit$pred)^2))
   cv.rmse[i] = rmse
 }
-cv.rmse
+xgb.rmse = mean(cv.rmse)
+cat('XGBoost RMSE: ',sgb.rmse)
 ```
 
-### Trees
+## Tree-Based Models
+
+### Simple Tree
 
 ```{r}
 library(tree)
@@ -518,11 +559,19 @@ text(myTree,pretty=20)
 
 preds <- predict(myTree,train.data)
 sqrt(mean((train.data$Item_Outlet_Sales - preds)^2))
+```
 
+### Pruning
+
+```{r pruning}
 myTree = prune.tree(myTree,best=10)
 plot(myTree)
 text(myTree,pretty=1)
+preds <- predict(myTree,train.data)
+sqrt(mean((train.data$Item_Outlet_Sales - preds)^2))
 ```
+
+## Ensembles
 
 ### Boosting
 
@@ -572,6 +621,8 @@ boo.rmse <- mean(boo.mse)
 cat('Boosting RMSE: ',boo.rmse)
 
 ```
+
+### XGBoost
 
 ```{r xgboost}
 
