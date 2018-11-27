@@ -310,7 +310,7 @@ plot(pca.out$x[,c(1,3)], col=Cols(log(train.data$Item_Outlet_Sales)), pch=19,xla
 
 
 # 3d plot of the first 3 significant components of PCA, gradient color of log of sales
-color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
+color.gradient <- function(x, colors=c("green","yellow","red"), colsteps=100) {
   return(colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ])
 }
 
@@ -436,6 +436,55 @@ xgb.plot.importance(xgb.importance(model = xgb.fit))
 cv.forest <- rfcv(as.dataframe(unclass(train.data)),train.data$Item_Outlet_Sales,cv.fold=5, step=0.66)
 ```
 
+
+```{r knn pca, echo=TRUE}
+k.nn = 3:10
+k.cv = 5
+total_comps = dim(train.pca)[2]
+
+folds = sample(rep(1:k.cv, length = nrow(train.pca)), replace = F)
+
+cv.results <- matrix(data = 0,nrow = length(k.nn), ncol = total_comps - 1)
+rownames(cv.results) <- k.nn
+colnames(cv.results) <- 2:total_comps
+
+for (neighbours in k.nn){
+  for (ncomp in 2:total_comps){
+    cv.rmse = rep(0, k.cv)
+    for (i in 1:k.cv){
+      knn.pca.fit <- FNN::knn.reg(train = train.pca[folds!=i,1:ncomp],
+                              test = train.pca[folds==i,1:ncomp],
+                              y = train.data$Item_Outlet_Sales[folds!=i],
+                              k = neighbours)
+      rmse = sqrt(mean((train.data$Item_Outlet_Sales[folds==i] - knn.pca.fit$pred)^2))
+      cv.rmse[i] = rmse
+    }
+    cv.results[neighbours - 2, ncomp - 1] <- mean(cv.rmse)
+  }
+}
+
+library(reshape2)
+cv.results <- as.data.frame(cv.results)
+cv.results$neighbours <- rownames(cv.results)
+cv.results.melt <- melt(cv.results, id.vars = "neighbours")
+names(cv.results.melt) <- c("neighbours", "ncomps", "rmse")
+
+cv.results.melt = as.data.frame(lapply(cv.results.melt, as.numeric))
+rgl::plot3d(cv.results.melt, col = color.gradient(cv.results.melt$rmse))
+
+
+
+cv.rmse = rep(0, k.cv)
+for (i in 1:k.cv){
+  knn.pca.fit <- FNN::knn.reg(train = train.pca[folds!=i, c(1,3)],
+                          test = train.pca[folds==i, c(1,3)],
+                          y = train.data$Item_Outlet_Sales[folds!=i],
+                          k = neighbours)
+  rmse = sqrt(mean((train.data$Item_Outlet_Sales[folds==i] - knn.pca.fit$pred)^2))
+  cv.rmse[i] = rmse
+}
+cv.rmse
+```
 
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
