@@ -9,19 +9,19 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,
+knitr::opts_chunk$set(echo = FALSE,
                       tidy=TRUE,
                       fig.align='center',
                       tidy.opts=list(width.cutoff=60))
 # https://www.calvin.edu/~rpruim/courses/s341/S17/from-class/MathinRmd.html
 ```
 Import the training and testing datasets while converting white spaces to NAs as well
-```{r , echo =TRUE}
+```{r }
 train.data <- read.csv('./bigmart_train.csv', stringsAsFactors = FALSE, na.strings = c(""))
 test.data <- read.csv('./bigmart_test.csv', stringsAsFactors = FALSE, na.strings = c(""))
 ```
 Then we first check for the presence of NA values.
-```{r , echo =TRUE}
+```{r }
 check.na.values <- function(df){
   colSums(apply(df, 2, is.na))
 }
@@ -34,7 +34,7 @@ We have missing values in `Item_Weight` and `Outlet_Size`.
 
 Now, we check the frequencies of categorical variables.
 
-```{r , echo =TRUE}
+```{r }
 col_types = lapply(train.data, class)
 char_cols = names(col_types[col_types == 'character'])
 lapply(train.data[, setdiff(char_cols, c("Item_Identifier"))], table)
@@ -42,14 +42,14 @@ lapply(train.data[, setdiff(char_cols, c("Item_Identifier"))], table)
 
 
 We aggregate on outlet level to impute outlet size
-```{r , echo =TRUE}
+```{r }
 setdiff(unique(train.data$Outlet_Identifier), unique(test.data$Outlet_Identifier))
 setdiff(unique(test.data$Outlet_Identifier), unique(train.data$Outlet_Identifier))
 ```
 
 We see that there are no new stores in the test data that are not already encountered in the training data.
 
-```{r , echo =TRUE}
+```{r }
 library(tidyverse)
 item_weights <- train.data %>%
   group_by(Item_Identifier) %>%
@@ -83,7 +83,7 @@ fill_missing_values <- function(file) {
 
 Then, we call it and check if the problem is resolved.
 
-```{r , echo =TRUE}
+```{r }
 train.data <- fill_missing_values(train.data)
 test.data <- fill_missing_values(test.data)
 check.na.values(train.data)
@@ -134,7 +134,7 @@ train_num_imp[na_indices,c('Outlet_Size_Medium','Outlet_Size_High','Outlet_Size_
 
 Finally, we check to see that there is still any missing values:
 
-```{r , echo =TRUE}
+```{r }
 check.na.values(train.data)
 ```
 
@@ -150,12 +150,12 @@ for (i in test_miss_size_i) {
 
 After this, we check if there is any missing values in the testing set:
 
-```{r , echo =TRUE}
+```{r }
 check.na.values(test.data)
 ```
 Since there are no more missing values we proceed further with data cleaning.
 After observing the Item_Fat_Content, we found that different labels represented same information. To fix that, remap the labels to only two logically significant labels, namely, low_fat and regular. 
-```{r , echo =TRUE}
+```{r }
 mapping_values <- c("low_fat", "low_fat", "low_fat", "regular", "regular")
 names(mapping_values) <- c("LF", "low fat", "Low Fat", "reg", "Regular")
 
@@ -173,7 +173,7 @@ test.data <- test.data %>%
 2. We created a feature named Item_Cat which represents the Category of the Item. It's created from the first two letters of Item_Identifier labels which represents the category of the products.
 3. We then observed that some Non-consumables have either low_fat or regular, which doesn't really make sense. So we changed those labels accordingly.
 4. We observed that a lot of Items with 0% visibility that have made sales. We fixed that by taking the aggregated visibility of the same item and setting the visibility to the obtained aggregated value
-```{r , echo =TRUE}
+```{r }
 train.data = train.data %>% 
   ####### 1.
   mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
@@ -199,7 +199,7 @@ train.data = train.data %>%
 
 Applying the same steps on the test data set, so that are models stay healthy for test set as well.
 
-```{r , echo =TRUE}
+```{r }
 test.data = test.data %>% 
   mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
   mutate(Item_Cat = substr(Item_Identifier,1,2)) %>% 
@@ -220,7 +220,7 @@ test.data = test.data %>%
   
 ```
 
-```{r , echo =TRUE}
+```{r }
 setdiff(names(train.data),names(test.data))
 ```
 
@@ -691,7 +691,7 @@ library(xgboost)
 library(Matrix)
 train.data.matrix <- train.data %>%
   # select(-c("Outlet_Identifier", "Item_Identifier"))
-  select(-c("Outlet_Identifier", "Item_Identifier"))
+  select(-c("Item_Identifier"))
 
 X.train <- sparse.model.matrix(Item_Outlet_Sales ~ ., data = train.data.matrix)[, -1]
 
