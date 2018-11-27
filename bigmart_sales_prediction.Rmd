@@ -283,6 +283,25 @@ ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales
 ```{r linear all vars, echo=TRUE}
 linear.fit <- lm(Item_Outlet_Sales ~ ., data = subset(train.data, select = -Item_Identifier))
 summary(linear.fit)
+
+
+k = 10
+
+ncomp = 27
+
+set.seed(502)
+folds = sample(rep(1:k, length = nrow(pcr.data)), replace = T)
+
+cv.errors = rep(0, k)
+
+for (i in 1:k) {
+  linear.fit <- lm(Item_Outlet_Sales ~ ., data = subset(train.data, select = -Item_Identifier)[folds != i,])
+  pred = predict( linear.fit, newdata = subset(train.data, select = -Item_Identifier)[folds == i,])
+  error = mean((subset(train.data, select = -Item_Identifier)[folds == i,]$Item_Outlet_Sales - pred)^2)
+  cv.errors[i] = error
+}
+sqrt(mean(cv.errors))
+
 ```
 
 From the linear model, we can see that the sales of a particular item depends mainly on the store where it is sold and what the MRP is. The rmse is 1124. $R^{2}$ = 0.56. So only 56% of the variance in the output is explained by this linear model
