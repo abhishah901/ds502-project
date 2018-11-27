@@ -343,7 +343,7 @@ plot(forwardSubset,scale='r2')
 
 ```{r}
 library(tree)
-myTree = tree(Item_Outlet_Sales~.,train.data,minsize=50, mindev=.0001)
+myTree = tree(Item_Outlet_Sales~.,subset(train.data, select=-Item_Identifier),minsize=50, mindev=.0001)
 plot(myTree)
 text(myTree,pretty=20)
 
@@ -436,6 +436,80 @@ xgb.plot.importance(xgb.importance(model = xgb.fit))
 cv.forest <- rfcv(as.dataframe(unclass(train.data)),train.data$Item_Outlet_Sales,cv.fold=5, step=0.66)
 ```
 
+### Natural Splines
+
+As we observed above in the `Item_Outlet_Sales` vs. `Item_MRP` plot that the `Item_MRP` presents three different seperation between the data. These separations could be interpreted as knots where the underlying function could have changed. On the other side, we know that `Item_MRP` is a predictor of high importance according to the previous experiments.
+In order to investigate this further, we tried to fit our model with a natural spline with three knots corresponding to the above-mentionned values.
+
+We noticed also during the experiments that a natural spline could be fitted (better than other predictors but still poor) to `Item_Visibility_Ratio`.
+
+```{r ns 1}
+library(splines)
+
+#Sample the data
+set.seed(502)
+myMRP = train.data[sample(1:nrow(train.data),300,replace=FALSE),]$Item_MRP
+set.seed(502)
+myVisibility = train.data[sample(1:nrow(train.data),300,replace=FALSE),]$Item_Visibility_Ratio
+set.seed(502)
+mySales = train.data[sample(1:nrow(train.data),300,replace=FALSE),]$Item_Outlet_Sales
+
+FitMRP = lm(mySales~ns(myMRP,knots=c(69,136,203)))
+FitVisibility = lm(mySales~ns(myVisibility,knots=c(0.5)))
+
+# Plot the spline for a sequence of values (shape)
+mrplims=range(myMRP)
+grid = seq(from=mrplims[1],to=mrplims[2])
+PredMRP = predict(FitMRP,data=grid,se=TRUE)
+
+PredVisibility = predict(FitVisibility,data=grid,se=TRUE)
+
+
+plot(myVisibility,mySales, col='red') +
+points(myVisibility,PredVisibility$fit+2*PredVisibility$se,col='green',pch=20) +
+abline(v=c(1,2))
+
+plot(myMRP,mySales, col='red') +
+points(myMRP,PredMRP$fit-3*PredMRP$se,col='green',pch=20) +
+abline(v=c(69,136,203))
+
+
+```
+
+We can observe that the model is poorly fitted for `Item_Visibility_Ratio`, however, it presents a slightly better fit for `Item_MRP`.
+
+After multiple experiments, the best fitting spline to the sample of data that we picked corresponds to the predicted value `-3` times the standard error as shown above.
+Now we fit our model on the whole training data and calculate the RMSE.
+
+```{r ns 2}
+
+train.data<-train.data[sample(nrow(train.data)),]
+
+
+folds <- cut(seq(1,nrow(train.data)),breaks=10,labels=FALSE)
+
+ns.rmse = array(0,10)
+for(i in 1:10){
+    
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    valData <- train.data[testIndexes, ]
+    trainData <- train.data[-testIndexes, ]
+    
+    FitMRP = lm(trainData$Item_Outlet_Sales~ns(trainData$Item_MRP,knots=c(69,136,203)))
+    PredMRP = predict(FitMRP,newdata=trainData,se=TRUE)
+    ns.rmse[i] = sqrt(mean((PredMRP$fit - trainData$Item_Outlet_Sales)^2))
+}
+
+avg.rmse <- mean(ns.rmse)
+
+cat('Natural Spline RMSE(Item_MRP: ',avg.rmse)
+
+
+```
+
+We can see that the model above is not performing well since its RMSE is around 1397.588 which is higher than the previous models.
+
+We can conclude that this is due to a poor fit of the underlying function since it's based on only one predictor.
 
 Lets try to look at each Outlet individual and how good are the sales for each of them.
 ```{r}
