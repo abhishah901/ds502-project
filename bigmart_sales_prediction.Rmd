@@ -325,7 +325,9 @@ Finally, we assign transform the (aside) testing set according to the same Princ
 
 ```{r}
 train.pca <- pca.out$x
-aside.test.pca <- predict(pca.out, newdata= aside.test.data)
+aside.test.pca <- predict(pca.out, newdata= model.matrix(Item_Outlet_Sales~.,
+                                                         subset(aside.test.data, select= -Item_Identifier)
+                                                         )[,-1])
 ```
 
 ### Forward Feature Selection
