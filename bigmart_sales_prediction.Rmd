@@ -160,6 +160,9 @@ names(mapping_values) <- c("LF", "low fat", "Low Fat", "reg", "Regular")
 
 train.data <- train.data %>%
   mutate(Item_Fat_Content = mapping_values[Item_Fat_Content])
+
+test.data <- test.data %>%
+  mutate(Item_Fat_Content = mapping_values[Item_Fat_Content])
   
 ```
 
@@ -378,7 +381,6 @@ aside.test.pca <- predict(pca.out, newdata= model.matrix(Item_Outlet_Sales~.,
 ```{r message=FALSE}
 library(leaps)
 forwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='backward')
-summary(forwardSubset)
 names(coef(forwardSubset,9))
 plot(forwardSubset,scale='r2')
 ```
@@ -399,7 +401,7 @@ plot(myTree)
 text(myTree,pretty=1)
 ```
 
-### Random Forest
+### Boosting
 
 ```{r, echo=TRUE}
 
@@ -475,9 +477,19 @@ tail(xgb.cv.fit$evaluation_log, 1)
 xgb.plot.importance(xgb.importance(model = xgb.fit))
 ```
 
+### Random forest
 
-```{r}
-cv.forest <- rfcv(as.dataframe(unclass(train.data)),train.data$Item_Outlet_Sales,cv.fold=5, step=0.66)
+```{r rforest}
+library(randomForest)
+train.rf <- subset(train.data, select=-Item_Identifier)
+
+myForest = randomForest(formula=Item_Outlet_Sales~., data=train.rf, do.trace=T)
+
+summary(myForest)
+
+preds <- predict(myForest, newdata= test.rf)
+
+sqrt(mean((train.rf$Item_Outlet_Sales - preds)^2))
 ```
 
 ### Natural Splines
