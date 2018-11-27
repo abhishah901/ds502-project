@@ -214,7 +214,6 @@ test.data = test.data %>%
 setdiff(names(train.data),names(test.data))
 ```
 
-<<<<<<< HEAD
 ```{r, echo=TRUE}
 
 library(xgboost)
