@@ -652,7 +652,15 @@ cat('Boosting RMSE: ',boo.rmse)
 
 ```
 
+
 ### XGBoost
+
+#### eXtreme Gradient Boosting
+
+
+Xgboost is a parallelized boosting algorithm that implements dropout regularization (dropping trees that tend to overfit data) to prevent overfitting. Boosting techniques suffer from over fitting since at each step they try to minimize the error from the previous step thus tend to overly adapt to the data.
+
+We do cross validation for searching the best parameters over 100 iterations. Evaluation criterion is `rmse`.
 
 ```{r xgboost}
 
@@ -697,6 +705,10 @@ for (iter in 1:100) {
   
 ```
 
+
+Now we plot the `rmse` against the number of trees to see the knee in the curve. We don't want to overfit.
+From the plot below that 15 is the number of trees after which the error does not drop significantly.
+
 ```{r, echo=TRUE}
 cat("best_param:")
 best_param
@@ -722,11 +734,12 @@ xgb.fit <- xgboost(data = X.train, label = y.train,
                  verbose = F, maximize = FALSE)
 
 # RMSE of the model
-tail(xgb.cv.fit$evaluation_log, 1)
+tail(xgb.fit$evaluation_log, 1)
 
 # Plot importances
 xgb.plot.importance(xgb.importance(model = xgb.fit))
 ```
+The plot above explains the variable importance where we can clearly see that `MRP` is the most significant feature.
 
 ### Bagging (Random forest)
 In this section we now implement a random Forrest on the Training Data and run a 10-fold cross validation. Looking at the error plots vs. number of trees we decided each Forrest having 50 trees is sufficient in order to get a approximation of our Training RMSE. Additionally, by default within a given Forrest each tree is built on a random sample of 2/3 with 1/3 of the predictors. Through this approach we obtain a training RMSE of about 1185 which is a little better than the Tree RMSE of 1276.  
