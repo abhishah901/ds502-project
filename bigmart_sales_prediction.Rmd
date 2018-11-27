@@ -278,7 +278,7 @@ ggplot(train.data[1:nrow(train.data),], aes(Outlet_Identifier, Item_Outlet_Sales
   ggtitle("Sales vs Outlet Identifier")
 ```
 
-## Linear Models
+## Simple Linear Models
 
 ```{r linear all vars, echo=TRUE}
 linear.fit <- lm(Item_Outlet_Sales ~ ., data = subset(train.data, select = -Item_Identifier))
@@ -549,28 +549,58 @@ cat('XGBoost RMSE: ',sgb.rmse)
 
 ## Tree-Based Models
 
-### Simple Tree
+### Simple Trees
 
-```{r}
+We implement regression trees on our training data and run a 10-fold cross validation. All predictors except for Item_Identifier for building each tree. Through this approach we obtain a training RMSE of 1276. We will keep this in mind when we run a random Forrest later on in the report. 
+
+```{r, message=FALSE, warning=FALSE}
 library(tree)
-myTree = tree(Item_Outlet_Sales~.,subset(train.data, select=-Item_Identifier),minsize=50, mindev=.0001)
-plot(myTree)
-text(myTree,pretty=20)
+train.tree <- subset(train.data, select=-Item_Identifier)
 
-preds <- predict(myTree,train.data)
-sqrt(mean((train.data$Item_Outlet_Sales - preds)^2))
+folds <- cut(seq(1,nrow(train.tree )),breaks=10,labels=FALSE)
+tree.mse = array(0,10)
+ptree.mse = array(0,10)
+trainTree = array(0,10)
+ptree.res = array(0,10)
+
+for(i in 1:10){
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  valData <- train.tree[testIndexes, ]
+  trainData <- train.tree[-testIndexes, ]
+  
+  myTree = tree(Item_Outlet_Sales~.,trainData,minsize=50, mindev=.0001)
+  preds <- predict(myTree, newdata= valData)
+  
+  tree.mse[i] = sqrt(mean((valData$Item_Outlet_Sales - preds)^2))
+  
+  predsT <- predict(myTree, newdata= trainData)
+  trainTree[i] = sqrt(mean((trainData$Item_Outlet_Sales - predsT)^2))
+  
+  myPTree = prune.tree(myTree,best=8)
+  preds <- predict(myPTree, newdata=valData)
+  ptree.mse[i] = sqrt(mean((valData$Item_Outlet_Sales - preds)^2))
+  
+  myPTreeT = prune.tree(myTree,best=8)
+  predss <- predict(myPTreeT, newdata=trainData)
+  ptree.res[i] = sqrt(mean((trainData$Item_Outlet_Sales - predss)^2))
+}
+tree.rmse = mean(tree.mse)
+ptree.rmse = mean(ptree.mse)
+
+cat('Simple tree residual RMSE: ', mean(trainTree),'\n')
+cat('Pruned tree residual RMSE: ', mean(ptree.res),'\n')
+cat('Simple Tree RMSE: ',tree.rmse,'\n')
+cat('Pruned Tree RMSE: ',ptree.rmse,'\n')
 ```
 
-### Pruning
+We can see above that pruning the tree actually reduces the RMSE on the validation set (which is an estimation of the real RMSE), however, the complete tree outperforms the pruned tree on the training set. This could simply be explained by the fact that the big tree overfits the data.
 
-```{r pruning}
-myTree = prune.tree(myTree,best=10)
-plot(myTree)
-text(myTree,pretty=1)
-preds <- predict(myTree,train.data)
-sqrt(mean((train.data$Item_Outlet_Sales - preds)^2))
+On the other side, pruning a tree doesn't only prevent overfitting but helps also having clear visualizations of the tree as shown below:
+
+```{r prune}
+plot(myPTree)
+text(myPTree, pretty = 1)
 ```
-
 ## Ensembles
 
 ### Boosting
@@ -699,18 +729,25 @@ xgb.plot.importance(xgb.importance(model = xgb.fit))
 ```
 
 ### Bagging (Random forest)
-
-```{r rforest}
+In this section we now implement a random Forrest on the Training Data and run a 10-fold cross validation. Looking at the error plots vs. number of trees we decided each Forrest having 50 trees is sufficient in order to get a approximation of our Training RMSE. Additionally, by default within a given Forrest each tree is built on a random sample of 2/3 with 1/3 of the predictors. Through this approach we obtain a training RMSE of about 1185 which is a little better than the Tree RMSE of 1276.  
+```{r rforest, message=FALSE, warning=FALSE}
 library(randomForest)
 train.rf <- subset(train.data, select=-Item_Identifier)
 
-myForest = randomForest(formula=Item_Outlet_Sales~., data=train.rf, do.trace=T, ntree=30)
+folds <- cut(seq(1,nrow(train.rf )),breaks=10,labels=FALSE)
+rf.mse = array(0,10)
 
-summary(myForest)
-
-preds <- predict(myForest, newdata= train.rf)
-
-sqrt(mean((train.rf$Item_Outlet_Sales - preds)^2))
+for(i in 1:10){
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  valData <- train.rf[testIndexes, ]
+  trainData <- train.rf[-testIndexes, ]
+  
+  myForest = randomForest(formula=Item_Outlet_Sales~., data=trainData, ntree=50)
+  preds <- predict(myForest, newdata= valData)
+  
+  rf.mse[i] = sqrt(mean((valData$Item_Outlet_Sales - preds)^2))
+}
+rf.rmse = mean(rf.mse)
 ```
 
 ### Natural Splines
@@ -785,3 +822,7 @@ cat('Natural Spline RMSE(Item_MRP: ',ns.rmse)
 We can see that the model above is not performing well since its RMSE is around 1397.588 which is higher than the previous models.
 
 We can conclude that this is due to a poor fit of the underlying function since it's based on only one predictor.
+
+# Conclusion
+
+
