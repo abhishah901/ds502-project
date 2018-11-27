@@ -169,7 +169,6 @@ test.data <- test.data %>%
 
 ##Feature Engineering:  
 
-###Train:
 1. Since the Outlet_Establishment_Year is in years, which is logically numeric, we transform it to the Years_Operating and then drop the column.
 2. We created a feature named Item_Cat which represents the Category of the Item. It's created from the first two letters of Item_Identifier labels which represents the category of the products.
 3. We then observed that some Non-consumables have either low_fat or regular, which doesn't really make sense. So we changed those labels accordingly.
@@ -197,8 +196,9 @@ train.data = train.data %>%
   select(-c(Item_Visibility_Avg)) 
   
 ```
+
 Applying the same steps on the test data set, so that are models stay healthy for test set as well.
-###Test:
+
 ```{r , echo =TRUE}
 test.data = test.data %>% 
   mutate(Years_Operating = 2013 - Outlet_Establishment_Year) %>% 
@@ -387,13 +387,57 @@ aside.test.pca <- predict(pca.out, newdata= model.matrix(Item_Outlet_Sales~.,
 ```
 
 ### Forward Feature Selection
-```{r message=FALSE}
+```{r ffs, message=FALSE, warning=FALSE}
 library(leaps)
-forwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='backward')
+forwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='forward')
 names(coef(forwardSubset,9))
 plot(forwardSubset,scale='r2')
+knitr::kable(data.frame(selected_features = names(coef(backwardSubset,9))[-1]), caption='Forward Selection')
 ```
 
+### Backward Feature Selection
+
+```{r bfs, message=FALSE, warning=FALSE}
+library(leaps)
+backwardSubset = regsubsets(Item_Outlet_Sales~.,subset(train.data, select = -Item_Identifier), method='backward')
+plot(backwardSubset,scale='r2')
+knitr::kable(data.frame(selected_features = names(coef(backwardSubset,9))[-1]), caption='Bakcward Selection')
+```
+
+### Lasso Regression
+
+```{r lasso}
+XTrain = model.matrix(Item_Outlet_Sales~.,                                                         subset(train.data, select= -Item_Identifier))
+
+YTrain = train.data$Item_Outlet_Sales
+
+XTest = model.matrix(Item_Outlet_Sales~.,                                                         subset(aside.test.data, select= -Item_Identifier))
+
+YTest = aside.test.data$Item_Outlet_Sales
+
+myLambda = 10^(seq(3,-1,length=100))
+
+myFit = glmnet(XTrain,YTrain,alpha=1,lambda=myLambda)
+
+myCoef = coef(myFit)
+myPredict = predict(myFit,newx=XTest)
+
+errors = NULL
+for (i in 1:100) {
+  errors[i] = mean( (YTest - myPredict[,i])^2 )
+}
+
+plot(myCoef[2:20,90],col='red',pch=1, ylab='Coefficients', xlab='Lambda')
+points(myCoef[2:20,which.min(errors)],col='green',pch=16)
+points(myCoef[2:20,30],col='yellow',pch=4)
+points(myCoef[2:20,1],col='blue',pch=3)
+
+plot(myLambda,errors,type='l', xlab='Lambda', ylab='Error')+
+  points(x=c(myLambda[which.min(errors)]), y = min(errors), pch=16, col='red')
+
+myCoef[,which.min(errors)]
+cat('Lasso Regression RMSE: ',sqrt(min(error)))
+```
 
 ```{r knn pca, echo=TRUE}
 k.nn = 3:10
