@@ -1,3 +1,2 @@
-##Bigmart Sales
 
 Bigmart Dataset
